@@ -1,15 +1,11 @@
 from __future__ import annotations
 from typing import Any, Callable, Dict, List
 
+from ..dtos.FinalResponse import FinalResponse
 from ..dtos.paperItem_dto import (
-    InferenceRequest,
-    InferenceResponse,
+    InferenceRequest
 )
-from ..repositories import openalex_repo, parser
-
-
-
-
+from . import openalex_service, llm_service, crawling_service
 
 
 def handle_papers_root(request_body: Dict[str, Any]) -> Dict[str, Any]:
@@ -32,10 +28,10 @@ def handle_papers_root(request_body: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def getPapersText(
+def get_papers_text(
     conference_json: Dict[str, Any],
     *,
-    crawler: Callable[[str], str] = parser.fetch_paper_text,  #  todo: 기본값으로 더미 사용, 스크래핑 함수 구현한 뒤 교체 필요
+    crawler: Callable[[str], str] = crawling_service.fetch_paper_text,  #  todo: 기본값으로 더미 사용, 스크래핑 함수 구현한 뒤 교체 필요
     status_code: int = 200,
 ) -> Dict[str, Any]:
     """
@@ -96,16 +92,27 @@ def getPapersText(
     }
 
 
-def handle_inference(req: InferenceRequest) -> InferenceResponse:
-    """
-    1) 논문 검색·크롤링 (Repository)
-    2) (선택) LLM 후처리
-    3) DTO 직렬화
-    """
-    papers = openalex_repo.fetch_mock()
+def handle_inference(req: InferenceRequest) -> FinalResponse:
 
-    return InferenceResponse(
-        conference_id=req.conference_id,
-        status_code=200,
-        papers=papers,
+    conference_id = req.conference_id
+    meeting_text = req.meeting_text
+
+    # 1. 키워드 및 요약 추출
+    keyword_result = llm_service.extract_keywords(conference_id, meeting_text)
+
+    # 2. 키워드를 기반으로 논문 검색
+    # papers = openalex_service.get_papers_by_keywords(keyword_result.keywords)
+    papers = openalex_service.fetch_mock()
+
+    # 3. 논문 본문 크롤링
+    crawled_papers = crawling_service.crawl_paper_texts(papers)
+
+    # 4. 논문 요약 생성
+    summarized_papers = llm_service.summarize_papers(crawled_papers)
+
+    # 5. 최종 응답 DTO 구성
+    return FinalResponse(
+        conference_id = req.conference_id,
+        summary = keyword_result.summary,
+        papers = summarized_papers,
     )
