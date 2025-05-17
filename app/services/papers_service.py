@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Dict, List
 
-from ..dtos.FinalResponse import FinalResponse
+from ..dtos.final_response import FinalResponse
 from ..dtos.paperItem_dto import (
     InferenceRequest
 )
