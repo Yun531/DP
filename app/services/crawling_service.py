@@ -1,4 +1,5 @@
 from app.dtos.crawled_paper_dto import CrawledPaper
+from app.dtos.paperItem_dto import PaperItem
 
 def fetch_paper_text(url: str) -> str:
     """
@@ -8,15 +9,15 @@ def fetch_paper_text(url: str) -> str:
     """
     return f"Dummy full‑text content from {url}"
 
-def crawl_paper_texts(papers: list) -> list[CrawledPaper]:
+def crawl_paper_texts(papers: list[PaperItem]) -> list[CrawledPaper]:
     """
     논문 리스트를 받아 각 논문의 본문을 크롤링하여 CrawledPaper DTO 리스트로 반환
     """
     results = []
 
     for paper in papers:
-        title = paper.get("title")
-        thesis_url = paper.get("pdf_url") or paper.get("landing_page_url")
+        title = paper.title
+        thesis_url = paper.pdf_url or paper.landing_page_url
 
         if not thesis_url:
             results.append(CrawledPaper(
