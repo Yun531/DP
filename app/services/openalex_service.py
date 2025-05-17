@@ -4,7 +4,7 @@ import json
 import requests
 from urllib.parse import quote_plus
 from typing import List, Dict, Any
-from ..dtos.paperItem_dto import PaperItem
+from app.dtos.paperItem_dto import PaperItem
 
 
 # ──────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ _SELECT_PART = "display_name,primary_location"
 # ──────────────────────────────────────────────────────────────
 
 
-def retrivePapers(request_json: Dict[str, Any]) -> Dict[str, Any]:
+def retrieve_papers(request_json: Dict[str, Any]) -> Dict[str, Any]:
     try:
         # ---------- 입력 검증 ----------
         conference_id = request_json.get("conference_id")
@@ -67,7 +67,7 @@ def retrivePapers(request_json: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 def fetch_mock() -> List[PaperItem]:
-    """외부 OpenAlex API 대체 더미 데이터"""
+    """외부 OpenAlexAPI 대체 더미 데이터"""
     return [
         PaperItem(
             paper_id=1,
