@@ -16,7 +16,7 @@ class PaperItem(BaseModel):
 
 class InferenceRequest(BaseModel):
     conference_id: str
-    transcript: str
+    meeting_text: str
 
 
 class InferenceResponse(BaseModel):
