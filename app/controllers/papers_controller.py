@@ -3,6 +3,8 @@ from pydantic import ValidationError, BaseModel
 from . import bp
 from ..dtos.paperItem_dto import InferenceRequest
 from ..services.papers_service import handle_inference,handle_papers_root
+from ..dtos.crawled_paper_dto import CrawledPaper
+from ..services.llm_service import summarize_papers
 
 
 # POST /api/papers
@@ -27,6 +29,16 @@ def papers_root():
     resp_dict = handle_papers_root(body)
     return jsonify(resp_dict), 200
 
+# POST /api/papers/summarize
+@bp.post("/summarize")
+def summarize():
+    try:
+        papers = request.get_json(force=True)["papers"]
+        crawled_papers = [CrawledPaper(**p) for p in papers]
+        summarized = summarize_papers(crawled_papers)
+        return jsonify([s.model_dump(mode="json") for s in summarized]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 # POST /api/papers/inference
 @bp.post("/inference")

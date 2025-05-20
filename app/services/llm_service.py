@@ -1,10 +1,6 @@
 import google.generativeai as genai
-
-# Gemini API 키 설정 (보안을 위해 실제 서비스에서는 환경변수로 관리 권장)
 genai.configure(api_key="AIzaSyAY3DtZzT-9yIJtoIwMP3_iFhGmNN6TlY0")
-
 from typing import List
-
 from app.dtos.crawled_paper_dto import CrawledPaper
 from app.dtos.keyword_summary_dto import KeywordSummaryResult
 from app.dtos.summarized_paper_dto import SummarizedPaper
@@ -16,7 +12,7 @@ def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
     """
     meeting_prompt = f"""
     다음은 한 연구실의 회의록입니다.  
-    이 회의록의 핵심 주제 또는 연구 키워드를 3~5개 추출해 주세요.  
+    이 회의록의 핵심 연구 키워드 5개 추출해 주세요.  
     각 키워드는 1~3단어로 간결하게 표현하고, 리스트 형태로 출력해 주세요.
 
     [회의록 입력]
@@ -32,7 +28,7 @@ def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
         kw = line.strip("-• ")
         if kw:
             keywords.append(kw)
-    # 요약은 키워드 리스트를 간단히 이어붙여 반환 (필요시 별도 프롬프트로 분리 가능)
+    # 요약은 키워드 리스트를 간단히 이어붙여 반환
     summary = ", ".join(keywords)
     return KeywordSummaryResult(
         conference_id=conference_id,
@@ -62,7 +58,7 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             """
             response = model.generate_content(paper_prompt)
             summary = response.text.strip()
-        results.append(SummarizedPaper(
+            results.append(SummarizedPaper(
             paper_id=paper.paper_id,
             title=paper.title,
             thesis_url=paper.thesis_url,
