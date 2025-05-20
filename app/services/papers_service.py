@@ -2,9 +2,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List
 
 from ..dtos.final_response import FinalResponse
-from ..dtos.paperItem_dto import (
-    InferenceRequest
-)
+from ..dtos.paperItem_dto import InferenceRequest, PaperItem
 from . import openalex_service, llm_service, crawling_service
 
 
@@ -101,8 +99,10 @@ def handle_inference(req: InferenceRequest) -> FinalResponse:
     keyword_result = llm_service.extract_keywords(conference_id, meeting_text)
 
     # 2. 키워드를 기반으로 논문 검색
-    # papers = openalex_service.get_papers_by_keywords(keyword_result.keywords)
-    papers = openalex_service.fetch_mock()
+    # papers = openalex_service.fetch_mock()
+    papers_dict = openalex_service.retrieve_papers(keyword_result)
+    papers_raw = papers_dict["papers"]
+    papers = [PaperItem(**p, status="success") for p in papers_raw]
 
     # 3. 논문 본문 크롤링
     crawled_papers = crawling_service.crawl_paper_texts(papers)

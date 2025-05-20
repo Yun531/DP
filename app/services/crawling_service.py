@@ -16,11 +16,13 @@ def crawl_paper_texts(papers: list[PaperItem]) -> list[CrawledPaper]:
     results = []
 
     for paper in papers:
+        paper_id = paper.paper_id
         title = paper.title
         thesis_url = paper.pdf_url or paper.landing_page_url
 
         if not thesis_url:
             results.append(CrawledPaper(
+                paper_id=paper_id,
                 title=title,
                 thesis_url="",
                 text_content="No usable url found in paper record"
@@ -30,12 +32,14 @@ def crawl_paper_texts(papers: list[PaperItem]) -> list[CrawledPaper]:
         try:
             text = fetch_paper_text(thesis_url)
             results.append(CrawledPaper(
+                paper_id=paper_id,
                 title=title,
                 thesis_url=thesis_url,
                 text_content=text.strip()
             ))
         except Exception as e:
             results.append(CrawledPaper(
+                paper_id=paper_id,
                 title=title,
                 thesis_url=thesis_url,
                 text_content=f"Error during crawling: {str(e)}"
