@@ -13,7 +13,7 @@ def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
     return KeywordSummaryResult(
         conference_id=conference_id,
         summary="Transformer 모델의 연산 효율성에 대한 논의 요약...",
-        keywords=["Transformer", "연산 최적화", "모델 경량화"]
+        keywords=["graph", "neural", "network", "optimization", "framework"]
     )
 
 def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
@@ -31,6 +31,7 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             summary = f"[요약] {paper.title} 논문에 대한 요약 결과입니다."
 
         results.append(SummarizedPaper(
+            paper_id=paper.paper_id,
             title=paper.title,
             thesis_url=paper.thesis_url,
             text_content=paper.text_content,
