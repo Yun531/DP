@@ -25,7 +25,7 @@ def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
     # Gemini 응답에서 키워드 리스트 추출 (예: ['키워드1', '키워드2', ...])
     keywords = []
     for line in response.text.strip().splitlines():
-        kw = line.strip("-• ")
+        kw = line.strip("-•* ")
         if kw:
             keywords.append(kw)
     # 요약은 키워드 리스트를 간단히 이어붙여 반환
