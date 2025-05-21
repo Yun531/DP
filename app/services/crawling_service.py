@@ -44,5 +44,4 @@ def crawl_paper_texts(papers: list[PaperItem]) -> list[CrawledPaper]:
                 thesis_url=thesis_url,
                 text_content=f"Error during crawling: {str(e)}"
             ))
-
     return results
