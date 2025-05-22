@@ -135,7 +135,7 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         # 5) 최종 필터링 및 정렬
         ready = [c for c in candidates if c["pdf"]]
         ready.sort(key=lambda x: x["rank"])
-        selected = ready[:7]
+        selected = ready[:4]
 
         # 6) PaperItem 변환
         papers: List[PaperItem] = []
