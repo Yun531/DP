@@ -19,10 +19,9 @@ _SELECT_PART = "display_name,primary_location"
 def retrieve_papers(request_json: Dict[str, Any]) -> Dict[str, Any]:
     try:
         # ---------- 입력 검증 ----------
-        conference_id = request_json.conference_id
         keywords: List[str] = request_json.keywords  # type: ignore
 
-        if not conference_id or not isinstance(keywords, list) or len(keywords) != 5:
+        if not isinstance(keywords, list) or len(keywords) != 5:
             raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
         # ---------- URL 구성 ----------
@@ -54,7 +53,6 @@ def retrieve_papers(request_json: Dict[str, Any]) -> Dict[str, Any]:
             )
 
         return {
-            "conference_id": conference_id,
             "status_code": 200,
             "papers": papers,
         }

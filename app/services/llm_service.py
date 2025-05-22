@@ -6,7 +6,7 @@ from app.dtos.keyword_summary_dto import KeywordSummaryResult
 from app.dtos.summarized_paper_dto import SummarizedPaper
 
 
-def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
+def extract_keywords(text: str) -> KeywordSummaryResult:
     """
     회의록 텍스트로부터 키워드와 요약을 추출 (Gemini API 활용)
     """
@@ -31,7 +31,6 @@ def extract_keywords(conference_id: str, text: str) -> KeywordSummaryResult:
     # 요약은 키워드 리스트를 간단히 이어붙여 반환
     summary = ", ".join(keywords)
     return KeywordSummaryResult(
-        conference_id=conference_id,
         summary=summary,
         keywords=keywords
     )

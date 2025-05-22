@@ -91,12 +91,10 @@ def get_papers_text(
 
 
 def handle_inference(req: InferenceRequest) -> FinalResponse:
-
-    conference_id = req.conference_id
-    meeting_text = req.meeting_text
+    meeting_text = req.content
 
     # 1. 키워드 및 요약 추출
-    keyword_result = llm_service.extract_keywords(conference_id, meeting_text)
+    keyword_result = llm_service.extract_keywords(meeting_text)
 
     # 2. 키워드를 기반으로 논문 검색
     # papers = openalex_service.fetch_mock()
