@@ -28,8 +28,19 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
         kw = line.strip("-•* ")
         if kw:
             keywords.append(kw)
-    # 요약은 키워드 리스트를 간단히 이어붙여 반환
-    summary = ", ".join(keywords)
+    keywords = keywords[:5]
+    summary_prompt = f"""
+    다음은 한 연구실의 회의록입니다.
+    이 회의록의 주요 논의 내용을 2~3문장으로 자연스럽게 요약해 주세요.
+
+    [회의록 입력]
+    ---
+    {text}
+    ---
+    """
+    summary_response = model.generate_content(summary_prompt)
+    summary = summary_response.text.strip()
+
     return KeywordSummaryResult(
         summary=summary,
         keywords=keywords
