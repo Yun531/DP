@@ -100,9 +100,7 @@ def handle_inference(req: InferenceRequest) -> FinalResponse:
 
     # 2. 키워드를 기반으로 논문 검색
     # papers = openalex_service.fetch_mock()
-    papers_dict = openalex_service.retrieve_papers(keyword_result)
-    papers_raw = papers_dict["papers"]
-    papers = [PaperItem(**p, status="success") for p in papers_raw]
+    papers = openalex_service.retrieve_papers(keyword_result)
 
     # 3. 논문 본문 크롤링
     crawled_papers = crawling_service.crawl_paper_texts(papers)

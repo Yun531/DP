@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 import requests
 from urllib.parse import quote_plus
-from typing import List, Dict, Any
-from app.dtos.paperItem_dto import PaperItem
+from typing import List
 
+from app.dtos.keyword_summary_dto import KeywordSummaryResult
+from app.dtos.paperItem_dto import PaperItem, InferenceRequest
 
 # ──────────────────────────────────────────────────────────────
 # 고정 파라미터
@@ -16,55 +16,59 @@ _SELECT_PART = "display_name,primary_location"
 # ──────────────────────────────────────────────────────────────
 
 
-def retrieve_papers(request_json: Dict[str, Any]) -> Dict[str, Any]:
+def retrieve_papers(keywordSummaryResult: KeywordSummaryResult) -> List[PaperItem]:
+    """
+    • OpenAlex에서 최대 10편 검색
+    • pdf_url이 있는 논문만 원래 rank가 작은 순으로 4편 선별
+    • paper_id는 1·2·3·4처럼 연속 번호로 부여
+    """
     try:
-        # ---------- 입력 검증 ----------
-        conference_id = request_json.conference_id
-        keywords: List[str] = request_json.keywords  # type: ignore
-
-        if not conference_id or not isinstance(keywords, list) or len(keywords) != 5:
+        conference_id = keywordSummaryResult.conference_id
+        keywords      = keywordSummaryResult.keywords
+        if not conference_id or len(keywords) != 5:
             raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
-        # ---------- URL 구성 ----------
+        # -------- URL & API 호출 --------
         search_str  = quote_plus(" ".join(keywords))
         filter_part = f"from_publication_date:{_DATE_FROM},has_fulltext:true"
         url = (
             f"{_BASE_URL}?search={search_str}"
             f"&filter={filter_part}"
-            f"&per_page={_PER_PAGE}"
-            f"&select={_SELECT_PART}"
+            f"&per_page=10"
+            f"&select=id,display_name,primary_location"
         )
+        data = requests.get(url, timeout=30).json()
 
-        # ---------- API 호출 ----------
-        resp = requests.get(url, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
 
-        # ---------- 결과 파싱 ----------
-        papers = []
+        # -------- pdf_url 존재 논문만 추리고 rank 기준 정렬 --------
+        candidates = []
         for rank, work in enumerate(data.get("results", []), start=1):
-            primary = work.get("primary_location") or {}
+            pdf = (work.get("primary_location") or {}).get("pdf_url")
+            if pdf:
+                candidates.append((rank, work, pdf))   # (원래 rank, 원본 dict, pdf_url)
+
+        candidates.sort(key=lambda x: x[0])           # rank 오름차순
+        selected = candidates[:4]                      # 상위 4편
+
+
+        # -------- PaperItem 리스트 생성 (paper_id = 1,2,3,4) --------
+        papers: List[PaperItem] = []
+        for idx, (_, work, pdf) in enumerate(selected, start=1):
             papers.append(
-                {
-                    "paper_id": rank,
-                    "title": work.get("display_name"),
-                    "pdf_url": primary.get("pdf_url"),
-                    "landing_page_url": primary.get("landing_page_url"),
-                }
+                PaperItem(
+                    paper_id=idx,                      # 1,2,3,4
+                    title=work.get("display_name"),
+                    status="success",
+                    pdf_url=pdf,
+                    text_content=None
+                )
             )
 
-        return {
-            "conference_id": conference_id,
-            "status_code": 200,
-            "papers": papers,
-        }
+        return papers
 
-    except (ValueError, json.JSONDecodeError, requests.RequestException) as exc:
-        return {
-            "conference_id": request_json.get("conference_id"),
-            "status_code": 400,
-            "error": str(exc),
-        }
+    except Exception as exc:
+        print(f"[ERROR] Failed to retrieve papers: {exc}")
+        return []
 
 def fetch_mock() -> List[PaperItem]:
     """외부 OpenAlexAPI 대체 더미 데이터"""

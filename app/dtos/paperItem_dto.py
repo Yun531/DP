@@ -9,8 +9,7 @@ class PaperItem(BaseModel):
     paper_id: int
     title: str
     status: str = Field(..., pattern="^(success|fail)$")
-    pdf_url: Optional[str] = None
-    landing_page_url: Optional[str] = None
+    pdf_url: str
     text_content: Optional[str] = None
 
 
