@@ -102,4 +102,3 @@ def fetch_mock() -> List[PaperItem]:
             text_content="Lorem ipsum...",
         ),
     ]
-# test
