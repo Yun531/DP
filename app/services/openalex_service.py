@@ -9,10 +9,10 @@ from app.dtos.paperItem_dto import PaperItem, InferenceRequest
 
 # ──────────────────────────────────────────────────────────────
 # 고정 파라미터
-_PER_PAGE   = 4
-_DATE_FROM  = "2015-01-01"
-_BASE_URL   = "https://api.openalex.org/works"
-_SELECT_PART = "display_name,primary_location"
+_PER_PAGE    = 10
+_DATE_FROM   = "2015-01-01"
+_BASE_URL    = "https://api.openalex.org/works"
+_SELECT_PART = "display_name,primary_location"   # 실제 사용
 # ──────────────────────────────────────────────────────────────
 
 
@@ -34,11 +34,10 @@ def retrieve_papers(keywordSummaryResult: KeywordSummaryResult) -> List[PaperIte
         url = (
             f"{_BASE_URL}?search={search_str}"
             f"&filter={filter_part}"
-            f"&per_page=10"
-            f"&select=id,display_name,primary_location"
+            f"&per_page={_PER_PAGE}"
+            f"&select={_SELECT_PART}"
         )
         data = requests.get(url, timeout=30).json()
-
 
         # -------- pdf_url 존재 논문만 추리고 rank 기준 정렬 --------
         candidates = []
@@ -47,9 +46,8 @@ def retrieve_papers(keywordSummaryResult: KeywordSummaryResult) -> List[PaperIte
             if pdf:
                 candidates.append((rank, work, pdf))   # (원래 rank, 원본 dict, pdf_url)
 
-        candidates.sort(key=lambda x: x[0])           # rank 오름차순
+        candidates.sort(key=lambda x: x[0])            # rank 오름차순
         selected = candidates[:4]                      # 상위 4편
-
 
         # -------- PaperItem 리스트 생성 (paper_id = 1,2,3,4) --------
         papers: List[PaperItem] = []
