@@ -96,7 +96,7 @@ def _get_pdf_semantic(title: str, doi: Optional[str] = None) -> Optional[str]:
         url = (
             f"{_SS_BASE}/paper/search"
             f"?query={q}"
-            "&limit=20"
+            "&limit=5"
             "&match_title=true"
             "&open_access_pdf=true"
             "&fields=title,openAccessPdf"
