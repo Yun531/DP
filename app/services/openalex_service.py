@@ -56,7 +56,8 @@ def _get_json(url: str,
                     pass
             # 429·5xx → 백오프
             elif resp.status_code in BACKOFF_CODES:
-                print(f"  ↳ 백오프: HTTP {resp.status_code}")
+                # print(f"  ↳ 백오프: HTTP {resp.status_code}")
+                pass
 
             else:
                 resp.raise_for_status()   # 4xx 치명 에러 즉시 전파
@@ -159,21 +160,6 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         )
         data = requests.get(url, timeout=_TIME_OUT).json()
 
-        # 한글 키워드 여부 확인 및 출력
-        has_korean = any(any(ord(c) > 128 for c in kw) for kw in ks.keywords)
-        if has_korean:
-            print("키워드에 한글이 포함되어 있습니다. 검색 결과가 없을 수 있습니다.")
-            print("키워드 목록:", ks.keywords)
-        else:
-            print("영어 키워드로 검색을 수행합니다.")
-            print("키워드 목록:", ks.keywords)
-
-        results = data.get("results", [])
-        if not results:
-            print("OpenAlex 검색 결과가 없습니다.")
-            print(f"요청 URL: {url}")
-            print(f"키워드 쿼리: {' '.join(ks.keywords)}")
-
         # 초기 후보 집계
         candidates = []
         for rank, work in enumerate(data.get("results", []), start=1):
@@ -217,14 +203,6 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
                     pdf_url  = cand["pdf"],
                 )
             )
-
-        # 테스트용 출력
-        print("반환할 papers 리스트:")
-        for paper in papers:
-            print(f"  - [ID: {paper.paper_id}] {paper.title}")
-            print(f"    Status: {paper.status}")
-            print(f"    PDF URL: {paper.pdf_url}")
-            print("-" * 50)
 
         return papers
 
@@ -320,4 +298,3 @@ def fetch_mock() -> List[PaperItem]:
             text_content="Lorem ipsum...",
         ),
     ]
-#test
