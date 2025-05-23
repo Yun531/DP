@@ -4,7 +4,7 @@ import requests, random, time
 import re
 import xml.etree.ElementTree as ET
 
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from typing import List, Optional
 
 from app.dtos.keyword_summary_dto import KeywordSummaryResult
@@ -77,7 +77,11 @@ def _get_json(url: str,
 def _clean_doi(doi: Optional[str]) -> Optional[str]:
     if not doi:
         return None
-    return doi.replace("https://doi.org/", "").strip()
+    doi = doi.strip().lower()
+    doi = doi.replace("https://doi.org/", "")
+    doi = doi.replace("http://doi.org/", "")
+    doi = doi.replace("doi:", "")
+    return doi
 
 
 # key를 발급받지 않아서 요청 제한이 자주 걸림 >> 백오프 거침 >> 최종 응답 반환까지 오래걸림
@@ -164,7 +168,14 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         candidates = []
         for rank, work in enumerate(data.get("results", []), start=1):
             title = work.get("display_name")
-            pdf   = (work.get("primary_location") or {}).get("pdf_url")
+            if not title:
+                continue  # title이 없는 경우 스킵
+
+            raw_pdf = (work.get("primary_location") or {}).get("pdf_url")
+            pdf = None
+            if raw_pdf and "bloomsburycollections.com" not in urlparse(raw_pdf).netloc:
+                pdf = raw_pdf
+
             candidates.append({
                 "rank":  rank,
                 "title": title,
