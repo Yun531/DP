@@ -159,6 +159,21 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         )
         data = requests.get(url, timeout=_TIME_OUT).json()
 
+        # 한글 키워드 여부 확인 및 출력
+        has_korean = any(any(ord(c) > 128 for c in kw) for kw in ks.keywords)
+        if has_korean:
+            print("키워드에 한글이 포함되어 있습니다. 검색 결과가 없을 수 있습니다.")
+            print("키워드 목록:", ks.keywords)
+        else:
+            print("영어 키워드로 검색을 수행합니다.")
+            print("키워드 목록:", ks.keywords)
+
+        results = data.get("results", [])
+        if not results:
+            print("OpenAlex 검색 결과가 없습니다.")
+            print(f"요청 URL: {url}")
+            print(f"키워드 쿼리: {' '.join(ks.keywords)}")
+
         # 초기 후보 집계
         candidates = []
         for rank, work in enumerate(data.get("results", []), start=1):

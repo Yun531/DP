@@ -15,7 +15,6 @@ def handle_papers_root(request_body: Dict[str, Any]) -> Dict[str, Any]:
     # TODO: 실제 로직 구현
 
     # meta = retrivePapers(
-    #     conference_id="ICML-2025",
     #     keywords=["graph", "neural", "network", "optimization", "method"],  # 5단어
     # )
     # papersText = getPapersText(meta)    # 메타데이터 + 논문 본문
@@ -35,7 +34,6 @@ def get_papers_text(
     """
     retrivePapers() 결과(JSON dict)에 본문 텍스트를 붙여 반환.
     """
-    conference_id = conference_json.get("conference_id")
     paper_records: List[Dict[str, Any]] = conference_json.get("papers", [])
 
     processed: List[Dict[str, Any]] = []
@@ -84,7 +82,6 @@ def get_papers_text(
             )
 
     return {
-        "conference_id": conference_id,
         "status_code": status_code,
         "papers": processed,
     }
