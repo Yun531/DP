@@ -13,6 +13,5 @@ class PaperMeta(BaseModel):
 
 
 class RetrievalResponse(BaseModel):
-    conference_id: str
     status_code: int = 200
     papers: List[PaperMeta]
