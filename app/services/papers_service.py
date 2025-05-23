@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Dict, List
 
-from ..dtos.final_response import FinalResponse
+from ..dtos.final_response import FinalResponse, RecommendedPaper
 from ..dtos.paperItem_dto import InferenceRequest, PaperItem
 from . import openalex_service, llm_service, crawling_service
 
@@ -91,12 +91,10 @@ def get_papers_text(
 
 
 def handle_inference(req: InferenceRequest) -> FinalResponse:
-
-    conference_id = req.conference_id
-    meeting_text = req.meeting_text
+    meeting_text = req.content
 
     # 1. 키워드 및 요약 추출
-    keyword_result = llm_service.extract_keywords(conference_id, meeting_text)
+    keyword_result = llm_service.extract_keywords(meeting_text)
 
     # 2. 키워드를 기반으로 논문 검색
     # papers = openalex_service.fetch_mock()
@@ -108,9 +106,18 @@ def handle_inference(req: InferenceRequest) -> FinalResponse:
     # 4. 논문 요약 생성
     summarized_papers = llm_service.summarize_papers(crawled_papers)
 
-    # 5. 최종 응답 DTO 구성
+    # 5. recommendedPapers 변환
+    recommended = [
+        RecommendedPaper(
+            title=sp.title,
+            url=sp.thesis_url,
+            summary=sp.summary
+        ) for sp in summarized_papers
+    ]
+
+    # 6. 최종 응답 DTO 구성
     return FinalResponse(
-        conference_id = req.conference_id,
-        summary = keyword_result.summary,
-        papers = summarized_papers,
+        summary=keyword_result.summary,
+        keywords=keyword_result.keywords,
+        recommendedPapers=recommended,
     )
