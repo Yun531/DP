@@ -14,11 +14,9 @@ class PaperItem(BaseModel):
 
 
 class InferenceRequest(BaseModel):
-    conference_id: str
-    meeting_text: str
+    content: str
 
 
 class InferenceResponse(BaseModel):
-    conference_id: str
     status_code: int = 200
     papers: List[PaperItem]

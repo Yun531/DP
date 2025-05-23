@@ -147,7 +147,7 @@ def _get_pdf_arxiv(title: str, ids: List[str]) -> Optional[str]:
 
 def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
     try:
-        if not ks.conference_id or len(ks.keywords) != 5:
+        if len(ks.keywords) != 5:
             raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
         # OpenAlex 검색
@@ -203,6 +203,14 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
                 )
             )
 
+        # 테스트용 출력
+        print("반환할 papers 리스트:")
+        for paper in papers:
+            print(f"  - [ID: {paper.paper_id}] {paper.title}")
+            print(f"    Status: {paper.status}")
+            print(f"    PDF URL: {paper.pdf_url}")
+            print("-" * 50)
+
         return papers
 
     except Exception as exc:
@@ -214,9 +222,8 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
 #----------------------------
 def retrieve_papers_(keywordSummaryResult: KeywordSummaryResult) -> List[PaperItem]:
     try:
-        conference_id = keywordSummaryResult.conference_id
         keywords      = keywordSummaryResult.keywords
-        if not conference_id or len(keywords) != 5:
+        if len(keywords) != 5:
             raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
         # -------- URL & API 호출 --------
