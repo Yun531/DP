@@ -11,11 +11,10 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     회의록 텍스트로부터 키워드와 요약을 추출 (Gemini API 활용)
     """
     meeting_prompt = f"""
-    다음은 한 연구실의 회의록입니다.  
-    이 회의록의 핵심 연구 키워드 5개 추출해 주세요.  
-    각 키워드는 1~3단어로 간결하게 표현하고, 리스트 형태로 출력해 주세요.
+    The following is a meeting transcript from a research lab.
+    Please extract 5 core research keywords in English, each keyword should be 1-3 words, and output as a list.
 
-    [회의록 입력]
+    [Meeting Transcript]
     ---
     {text}
     ---
