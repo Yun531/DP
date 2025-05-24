@@ -8,6 +8,8 @@ class PaperItem(BaseModel):
     """
     paper_id: int
     title: str
+    # status: str = Field(..., pattern="^(success|fail|dummy)$")
+    # pdf_url: Optional[str] = None
     status: str = Field(..., pattern="^(success|fail)$")
     pdf_url: str
     text_content: Optional[str] = None
