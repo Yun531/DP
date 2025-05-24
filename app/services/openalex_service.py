@@ -217,14 +217,14 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
                 )
             )
 
-        while len(papers) < 4:
-            papers.append(
-                PaperItem(
-                    paper_id=len(papers) + 1,
-                    title="검색된 논문이 없습니다",
-                    status="dummy"
-                )
-            )
+        # while len(papers) < 4:
+        #     papers.append(
+        #         PaperItem(
+        #             paper_id=len(papers) + 1,
+        #             title="검색된 논문이 없습니다",
+        #             status="dummy"
+        #         )
+        #     )
 
         return papers
 
