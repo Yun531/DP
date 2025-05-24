@@ -222,8 +222,7 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
                 PaperItem(
                     paper_id=len(papers) + 1,
                     title="검색된 논문이 없습니다",
-                    status="dummy",
-                    pdf_url="검색된 논문이 없습니다"
+                    status="dummy"
                 )
             )
 
