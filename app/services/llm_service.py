@@ -12,7 +12,7 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     """
     meeting_prompt = f"""
     The following is a meeting transcript from a research lab.
-    Please extract 5 core research keywords in English, each keyword should be 1-3 words, and output as a list.
+    Please extract 3 core research keywords in English, each keyword should be 1-3 words, and output as a list.
 
     [Meeting Transcript]
     ---
@@ -53,9 +53,18 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
     model = genai.GenerativeModel("gemini-1.5-flash")
     for paper in papers:
         text = paper.text_content
-        if not text or "error" in text.lower() or "no usable" in text.lower():
+        print(f"[LLM] {paper.title} | 텍스트 길이: {len(text) if text else 0}")
+        
+        # 텍스트가 비어있거나 너무 짧은 경우만 실패로 처리
+        if not text or len(text) < 100:  # 최소 100자 이상은 되어야 함
+            print(f"[LLM] {paper.title} | 텍스트가 비어있거나 너무 짧음")
             summary = "요약 불가: 본문 크롤링 실패"
         else:
+            # 너무 길면 앞부분만 사용
+            if len(text) > 15000:
+                print(f"[LLM] {paper.title} | 텍스트가 너무 길어 앞 15000자만 사용")
+                text = text[:15000]
+            
             paper_prompt = f"""
             다음 논문의 핵심 내용을 4~5문장 이내로 요약해 주세요.  
             논문이 해결하고자 한 문제, 제안한 방법, 실험 결과를 중심으로 간결하게 서술해 주세요.
@@ -65,9 +74,16 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             {text}
             ---
             """
-            response = model.generate_content(paper_prompt)
-            summary = response.text.strip()
-            results.append(SummarizedPaper(
+            try:
+                print(f"[LLM] {paper.title} | Gemini API 호출 시작")
+                response = model.generate_content(paper_prompt)
+                summary = response.text.strip()
+                print(f"[LLM] {paper.title} | Gemini API 호출 성공")
+            except Exception as e:
+                print(f"[LLM] {paper.title} | 요약 중 예외: {e}")
+                summary = "요약 불가: LLM 예외 발생"
+        
+        results.append(SummarizedPaper(
             paper_id=paper.paper_id,
             title=paper.title,
             thesis_url=paper.thesis_url,
