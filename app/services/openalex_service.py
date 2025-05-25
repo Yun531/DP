@@ -4,7 +4,7 @@ import requests, random, time
 import re
 import xml.etree.ElementTree as ET
 
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from typing import List, Optional
 
 from app.dtos.keyword_summary_dto import KeywordSummaryResult
@@ -77,10 +77,14 @@ def _get_json(url: str,
 def _clean_doi(doi: Optional[str]) -> Optional[str]:
     if not doi:
         return None
-    return doi.replace("https://doi.org/", "").strip()
+    doi = doi.strip().lower()
+    doi = doi.replace("https://doi.org/", "")
+    doi = doi.replace("http://doi.org/", "")
+    doi = doi.replace("doi:", "")
+    return doi
 
 
-# key를 발급받지 않아서 요청 제한이 자주 걸림 >> 백오프 거침 >> 최종 응답 반환까지 오래걸림
+# key를 발급받지 않아서 요청 제한이 자주 걸림 >> 백오프 거침 >> 최종 응답 반환까지 오래걸림  todo: 키 발급되면 적용
 def _get_pdf_semantic(title: str, doi: Optional[str] = None) -> Optional[str]:
     try:
         # DOI 직접 조회
@@ -152,6 +156,8 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
             raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
         # OpenAlex 검색
+
+        # ks.keywords = ks.keywords[:3]             # 사용 키워드 줄이기
         q   = quote_plus(" ".join(ks.keywords))
         flt = f"from_publication_date:{_DATE_FROM},has_fulltext:true"
         url = (
@@ -164,7 +170,14 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         candidates = []
         for rank, work in enumerate(data.get("results", []), start=1):
             title = work.get("display_name")
-            pdf   = (work.get("primary_location") or {}).get("pdf_url")
+            if not title:
+                continue  # title이 없는 경우 스킵
+
+            raw_pdf = (work.get("primary_location") or {}).get("pdf_url")
+            pdf = None
+            if raw_pdf and "bloomsburycollections.com" not in urlparse(raw_pdf).netloc:
+                pdf = raw_pdf
+
             candidates.append({
                 "rank":  rank,
                 "title": title,
@@ -204,6 +217,15 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
                 )
             )
 
+        # while len(papers) < 4:
+        #     papers.append(
+        #         PaperItem(
+        #             paper_id=len(papers) + 1,
+        #             title="검색된 논문이 없습니다",
+        #             status="dummy"
+        #         )
+        #     )
+
         return papers
 
     except Exception as exc:
@@ -240,7 +262,6 @@ def retrieve_papers_(keywordSummaryResult: KeywordSummaryResult) -> List[PaperIt
             if pdf:
                 candidates.append((rank, work, pdf))   # (원래 rank, 원본 dict, pdf_url)
 
-        candidates.sort(key=lambda x: x[0])           # rank 오름차순
         candidates.sort(key=lambda x: x[0])            # rank 오름차순
         selected = candidates[:4]                      # 상위 4편
 
