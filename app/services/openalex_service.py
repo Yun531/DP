@@ -38,7 +38,7 @@ def _normalize_title(t: str) -> str:
 
 def _get_json(url: str,
               *,
-              retries: int = 6,
+              retries: int = 1,
               backoff_factor: float = 0.8,
               timeout: int = _TIME_OUT,
               **kwargs):
