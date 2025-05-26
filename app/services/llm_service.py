@@ -12,7 +12,10 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     """
     meeting_prompt = f"""
     The following is a meeting transcript from a research lab.
-    Please extract 3 core research keywords in English, each keyword should be 1-3 words, and output as a list.
+    Please extract exactly 3 core research keywords from the transcript.
+    Each keyword must be a single English word (no phrases).
+    Do not include any symbols (e.g., asterisks, parentheses, semicolons).
+    Return only the 3 words as a plain list without any formatting or explanations.
 
     [Meeting Transcript]
     ---
@@ -61,9 +64,9 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             summary = "요약 불가: 본문 크롤링 실패"
         else:
             # 너무 길면 앞부분만 사용
-            if len(text) > 15000:
-                print(f"[LLM] {paper.title} | 텍스트가 너무 길어 앞 15000자만 사용")
-                text = text[:15000]
+            # if len(text) > 15000:
+            #     print(f"[LLM] {paper.title} | 텍스트가 너무 길어 앞 15000자만 사용")
+            #     text = text[:15000]
             
             paper_prompt = f"""
             다음 논문의 핵심 내용을 4~5문장 이내로 요약해 주세요.  

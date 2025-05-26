@@ -155,7 +155,7 @@ def _get_pdf_arxiv(title: str, ids: List[str]) -> Optional[str]:
 
 def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
     try:
-        if len(ks.keywords) != 3:
+        if len(ks.keywords) < 3:
             raise ValueError("`keywords`는 정확히 3개의 단어가 들어있는 리스트여야 합니다.")
 
         # OpenAlex 검색
