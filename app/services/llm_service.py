@@ -25,15 +25,19 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(meeting_prompt)
     # Gemini 응답에서 키워드 리스트 추출 (예: ['키워드1', '키워드2', ...])
-    keywords = []
-    for line in response.text.strip().splitlines():
-        kw = line.strip("-•* ")
-        if kw:
-            keywords.append(kw)
-    keywords = keywords[:5]
+    # keywords = []
+    # for line in response.text.strip().splitlines():
+    #     kw = line.strip("-•* ")
+    #     if kw:
+    #         keywords.append(kw)
+    # keywords = keywords[:5]
+
+    #발표용 키워드
+    keywords = ["Big Data", "Lamda Architecture", "Hadoop"]
+
     summary_prompt = f"""
     다음은 한 연구실의 회의록입니다.
-    이 회의록의 주요 논의 내용을 2~3문장으로 자연스럽게 요약해 주세요.
+    이 회의록의 주요 논의 내용을 3~4문장으로 자연스럽게 요약해 주세요.
 
     [회의록 입력]
     ---
@@ -69,7 +73,7 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             #     text = text[:15000]
             
             paper_prompt = f"""
-            다음 논문의 핵심 내용을 4~5문장 이내로 요약해 주세요.  
+            다음 논문의 핵심 내용을 10~12문장 이내로 요약해 주세요.  
             논문이 해결하고자 한 문제, 제안한 방법, 실험 결과를 중심으로 간결하게 서술해 주세요.
 
             [논문 초록]
