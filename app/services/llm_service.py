@@ -65,7 +65,7 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
         # 텍스트가 비어있거나 너무 짧은 경우만 실패로 처리
         if not text or len(text) < 100:  # 최소 100자 이상은 되어야 함
             print(f"[LLM] {paper.title} | 텍스트가 비어있거나 너무 짧음")
-            summary = "요약 불가: 본문 크롤링 실패"
+            summary = "크롤링에 실패하였습니다. url에 직접 접속해서 논문을 확인해주세요."
         else:
             # 너무 길면 앞부분만 사용
             # if len(text) > 15000:
