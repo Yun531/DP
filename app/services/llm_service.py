@@ -12,10 +12,10 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     """
     meeting_prompt = f"""
     The following is a meeting transcript from a research lab.
-    Please extract exactly 3 core research keywords from the transcript.
+    Please extract exactly 5 core research keywords from the transcript.
     Each keyword must be a single English word (no phrases).
     Do not include any symbols (e.g., asterisks, parentheses, semicolons).
-    Return only the 3 words as a plain list without any formatting or explanations.
+    Return only the 5 words as a plain list without any formatting or explanations.
 
     [Meeting Transcript]
     ---
@@ -25,15 +25,15 @@ def extract_keywords(text: str) -> KeywordSummaryResult:
     model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(meeting_prompt)
     # Gemini 응답에서 키워드 리스트 추출 (예: ['키워드1', '키워드2', ...])
-    # keywords = []
-    # for line in response.text.strip().splitlines():
-    #     kw = line.strip("-•* ")
-    #     if kw:
-    #         keywords.append(kw)
-    # keywords = keywords[:5]
+    keywords = []
+    for line in response.text.strip().splitlines():
+        kw = line.strip("-•* ")
+        if kw:
+            keywords.append(kw)
+    keywords = keywords[:5]
 
-    #발표용 키워드
-    keywords = ["Big Data", "Lamda Architecture", "Hadoop"]
+    # #발표용 키워드
+    # keywords = ["Big Data", "Lamda Architecture", "Hadoop"]
 
     summary_prompt = f"""
     다음은 한 연구실의 회의록입니다.

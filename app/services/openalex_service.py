@@ -1,153 +1,171 @@
 from __future__ import annotations
 
-import requests, random, time
-import re
-import xml.etree.ElementTree as ET
+import itertools
+
+import requests, random
 import logging
+import time
 
 from urllib.parse import quote_plus, urlparse
-from typing import List, Optional
+from typing import List
 
 from app.dtos.keyword_summary_dto import KeywordSummaryResult
 from app.dtos.paperItem_dto import PaperItem
-from requests.exceptions import JSONDecodeError
+from bs4 import BeautifulSoup
+
+
 
 # ───── 상수
-_PER_PAGE      = 10
-_TIME_OUT      = 30
-_DATE_FROM     = "2015-01-01"
-_BASE_URL      = "https://api.openalex.org/works"
-_SS_BASE       = "https://api.semanticscholar.org/graph/v1"
-_SELECT_PART   = "display_name,primary_location,doi,ids"
+_PER_PAGE       = 15
+_TIMEOUT        = 30
+_DATE_FROM      = "2015-01-01"
+_BASE_URL       = "https://api.openalex.org/works"
+_SELECT_PART    = "display_name,primary_location,doi,ids"
 
-TRUSTED_PREFIXES = (
+TRUSTED_PDF_PREFIXES = (
     "https://arxiv.org/pdf/",
     "https://ojs.aaai.org/index.php/AAAI/article/download/",
-    "https://ieeexplore.ieee.org/ielx7/",
+    "https://ieeexplore.ieee.org/",
 )
-BACKOFF_CODES  = {429, 500, 502, 503, 504}
+_BACKOFF_CODES  = {429, 500, 502, 503, 504}
 
 logger = logging.getLogger(__name__)
 
+
 # ───── 유틸리티
+def is_valid_pdf_url(url: str) -> bool:
+    try:
+        head = requests.head(url, allow_redirects=True, timeout=_TIMEOUT)
+        if head.status_code == 404:
+            return False
 
-def _normalize_title(t: str) -> str:
-    t = t.strip().lower()
-    t = re.sub(r"\s+", " ", t)
-    return t
+        final_url = head.url
+        domain = urlparse(final_url).netloc
 
-def _get_json(url: str,
-              *,
-              retries: int = 1,
-              backoff_factor: float = 0.8,
-              timeout: int = _TIME_OUT,
-              **kwargs):
-    for attempt in range(retries + 1):
+        # MIT Press 특화: title 태그 기반 필터
+        if "mit.edu" in domain:
+            resp = requests.get(final_url, timeout=_TIMEOUT)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            title = (soup.title.string or "").strip().lower()
+            if "not found" in title:
+                return False
+
+        # 신뢰 PDF 링크
+        if any(prefix in final_url for prefix in TRUSTED_PDF_PREFIXES):
+            return True
+
+        # 일반 필터
+        if any(x in final_url for x in ["login", "subscribe", "abstract", "overview"]):
+            return False
+
+        return True
+    except Exception:
+        return False
+
+
+def query_openalex(keywords: List[str]) -> List[dict]:
+    q = quote_plus(" ".join(keywords))
+    flt = f"from_publication_date:{_DATE_FROM},has_fulltext:true"
+    url = (
+        f"{_BASE_URL}?search={q}&filter={flt}&per_page={_PER_PAGE}"
+        f"&select=display_name,primary_location"
+    )
+    print(f"[OpenAlex] 검색 URL: {url}")
+
+    for attempt in range(2):  # 최대 2번 시도 (기본 1회 + 백오프 1회)
         try:
-            resp = requests.get(
-                url,
-                timeout=timeout,
-                headers={"User-Agent": "ScholarBot/1.0"},
-                **kwargs
-            )
-            # 정상 200 → JSON 디코딩
-            if resp.status_code == 200:
-                try:
-                    return resp.json()
-                except JSONDecodeError:
-                    # HTML 에러 페이지가 200으로 오는 경우도 백오프
-                    pass
-            # 429·5xx → 백오프
-            elif resp.status_code in BACKOFF_CODES:
-                # print(f"  ↳ 백오프: HTTP {resp.status_code}")
-                pass
+            response = requests.get(url, timeout=_TIMEOUT)
+            if response.status_code in _BACKOFF_CODES:
+                print(f"[OpenAlex] 상태코드 {response.status_code} → 백오프 시도")
+                if attempt == 0:
+                    time.sleep(2)  # 2초 대기 후 재시도
+                    continue
+                else:
+                    return []
+            data = response.json()
+            break
+        except Exception as e:
+            print(f"[OpenAlex] 요청 실패: {e}")
+            if attempt == 0:
+                time.sleep(2)
+                continue
+            return []
 
-            else:
-                resp.raise_for_status()   # 4xx 치명 에러 즉시 전파
-        except (requests.Timeout, requests.ConnectionError) as e:
-            print(f"  ↳ 네트워크 예외: {type(e).__name__}")
+    results = []
+    for rank, work in enumerate(data.get("results", []), start=1):
+        title = work.get("display_name")
+        if not title:
+            continue
 
-        # 마지막 시도면 빈 딕셔너리 반환
-        if attempt == retries:
-            return {}
+        raw_pdf = (work.get("primary_location") or {}).get("pdf_url")
+        if raw_pdf and "bloomsburycollections.com" not in urlparse(raw_pdf).netloc:
+            if is_valid_pdf_url(raw_pdf):
+                results.append({
+                    "rank": rank,
+                    "title": title.strip(),
+                    "pdf": raw_pdf
+                })
 
-        # 재시도 전 대기
-        sleep = backoff_factor * (2 ** attempt) + random.uniform(0, backoff_factor)
-        time.sleep(sleep)
-
-    return {}
-
-def _clean_doi(doi: Optional[str]) -> Optional[str]:
-    if not doi:
-        return None
-    doi = doi.strip().lower()
-    doi = doi.replace("https://doi.org/", "")
-    doi = doi.replace("http://doi.org/", "")
-    doi = doi.replace("doi:", "")
-    return doi
+    return results
 
 
 def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
-    try:
-        if len(ks.keywords) < 5:
-            raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
+    if len(ks.keywords) != 5:
+        raise ValueError("`keywords`는 정확히 5개의 단어가 들어있는 리스트여야 합니다.")
 
-        # OpenAlex 검색
-        q   = quote_plus(" ".join(ks.keywords))
-        flt = f"from_publication_date:{_DATE_FROM},has_fulltext:true"
-        url = (
-            f"{_BASE_URL}?search={q}&filter={flt}&per_page={_PER_PAGE}" \
-            f"&select={_SELECT_PART}"
-        )
-        print(f"[OpenAlex] 논문 검색 URL: {url}")
-        data = requests.get(url, timeout=_TIME_OUT).json()
+    collected = []
+    used_titles = set()
 
-        # 초기 후보 집계
-        print(f"[OpenAlex] 검색 결과 후보 집계 시작")
-        candidates = []
-        for rank, work in enumerate(data.get("results", []), start=1):
-            title = work.get("display_name")
-            if not title:
-                continue  # title이 없는 경우 스킵
+    for r in range(5, 0, -1):
+        # 1) 이 단계의 모든 조합에 대해 API 호출
+        combos = list(itertools.combinations(ks.keywords, r))
+        stage_all = []
+        for combo in combos:
+            papers = query_openalex(list(combo))
+            stage_all.extend(papers)
 
-            raw_pdf = (work.get("primary_location") or {}).get("pdf_url")
-            pdf = None
-            if raw_pdf and "bloomsburycollections.com" not in urlparse(raw_pdf).netloc:
-                pdf = raw_pdf
+        # 2) 이 단계 내 중복 제목 제거 (첫 등장 유지)
+        seen_stage = set()
+        stage_unique = []
+        for p in stage_all:
+            if p["title"] not in seen_stage:
+                seen_stage.add(p["title"])
+                stage_unique.append(p)
 
-            candidates.append({
-                "rank":  rank,
-                "title": title,
-                "doi":   work.get("doi"),
-                "ids":   work.get("ids", []),
-                "pdf":   pdf,
-            })
-        print(f"[OpenAlex] 후보 논문 수: {len(candidates)}")
+        # 3) 이전 단계에서 이미 뽑힌 논문 제외
+        stage_new = [p for p in stage_unique if p["title"] not in used_titles]
 
+        remaining = 10 - len(collected)
+        if remaining <= 0:
+            break
 
-        # 최종 필터링 및 정렬
-        ready = [c for c in candidates if c["pdf"]]
-        ready.sort(key=lambda x: x["rank"])
-        selected = ready[:4]
-        print(f"[OpenAlex] 최종 선택 논문 수: {len(selected)}")
+        # 4) 수집량 초과 시 무작위 선택
+        if len(stage_new) > remaining:
+            selected = random.sample(stage_new, remaining)
+        else:
+            selected = stage_new
 
-        # PaperItem 변환
-        print(f"[OpenAlex] PaperItem 변환 시작")
-        papers: List[PaperItem] = []
-        for idx, cand in enumerate(selected, start=1):
-            print(f"[OpenAlex] PaperItem 생성: {cand['title']} | PDF: {cand['pdf']}")
-            papers.append(
-                PaperItem(
-                    paper_id = idx,
-                    title    = cand["title"],
-                    status   = "success",
-                    pdf_url  = cand["pdf"],
-                )
+        collected.extend(selected)
+        used_titles.update(p["title"] for p in selected)
+
+        if len(collected) >= 10:
+            break
+
+    # PaperItem 형태로 변환
+    papers: List[PaperItem] = []
+    for idx, cand in enumerate(collected, start=1):
+        print(f"[OpenAlex] 선택된 논문: {cand['title']} | PDF: {cand['pdf']}")
+        papers.append(
+            PaperItem(
+                paper_id=idx,
+                title   =cand["title"],
+                status  ="success",
+                pdf_url =cand["pdf"]
             )
+        )
 
-        return papers
+    return papers
 
-    except Exception as exc:
-        print(f"[OpenAlex][ERROR] 실패: {exc}")
-        return []
 
+# url = "https://direct.mit.edu/books/monograph/5167/bookpreview-pdf/2238858"
+# print(is_valid_pdf_url(url))
