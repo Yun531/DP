@@ -5,6 +5,8 @@ import itertools
 import requests, random
 import logging
 import time
+import pika
+import json
 
 from urllib.parse import quote_plus, urlparse
 from typing import List
@@ -165,6 +167,40 @@ def retrieve_papers(ks: KeywordSummaryResult) -> List[PaperItem]:
         )
 
     return papers
+
+
+class OpenAlexService:
+    def __init__(self):
+        credentials = pika.PlainCredentials('guest', 'guest')
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host='localhost',
+                credentials=credentials
+            )
+        )
+        self.channel = self.connection.channel()
+        self.channel.queue_declare(queue='paper_processing')
+
+    def retrieve_and_publish_papers(self, keyword_result: KeywordSummaryResult) -> List[PaperItem]:
+        # 논문 검색 유틸 함수 호출
+        papers = retrieve_papers(keyword_result)
+
+        # 메시지 변환 (직렬화)
+        papers_data = [paper.to_dict() for paper in papers]
+
+        # 큐에 메시지 발행
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='paper_processing',
+            body=json.dumps(papers_data),
+            properties=pika.BasicProperties(delivery_mode=2)  # 내구성 옵션
+        )
+
+        return papers
+
+    def __del__(self):
+        if hasattr(self, 'connection') and not self.connection.is_closed:
+            self.connection.close()
 
 
 # url = "https://direct.mit.edu/books/monograph/5167/bookpreview-pdf/2238858"

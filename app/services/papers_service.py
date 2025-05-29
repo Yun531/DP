@@ -1,10 +1,15 @@
 from __future__ import annotations
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from ..dtos.final_response import FinalResponse, RecommendedPaper
 from ..dtos.paperItem_dto import InferenceRequest, PaperItem
 from . import openalex_service, llm_service, crawling_service
 from app.services.crawling_service import CrawlingService
+
+from app.services.service_registry import get_openalex_service
+
+import logging
+logger = logging.getLogger(__name__)
 
 def handle_papers_root(request_body: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -75,8 +80,12 @@ def handle_inference(req: InferenceRequest) -> FinalResponse:
     print(f"[LOG] keyword_result 타입: {type(keyword_result)} | 값: {str(keyword_result)}")
 
     # 2. 키워드를 기반으로 논문 검색
-    # papers = openalex_service.fetch_mock()
-    papers = openalex_service.retrieve_papers(keyword_result)
+    try:
+        openalex = get_openalex_service()
+        papers = openalex.retrieve_and_publish_papers(keyword_result)
+    except Exception as e:
+        logger.error("RabbitMQ 발행 실패", exc_info=True)
+        papers = openalex_service.retrieve_papers(keyword_result)
     print(f"[LOG] papers 크기: {len(papers)}")
 
     # 3. 논문 본문 크롤링

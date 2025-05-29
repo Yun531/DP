@@ -4,6 +4,8 @@ from typing import List
 from app.dtos.crawled_paper_dto import CrawledPaper
 from app.dtos.keyword_summary_dto import KeywordSummaryResult
 from app.dtos.summarized_paper_dto import SummarizedPaper
+import pika
+import json
 
 
 def extract_keywords(text: str) -> KeywordSummaryResult:
@@ -98,3 +100,49 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             summary=summary
         ))
     return results
+
+
+class LLMService:
+    def __init__(self):
+        # RabbitMQ 연결
+        credentials = pika.PlainCredentials('guest', 'guest')
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host='localhost',  # 도커 사용 시: rabbitmq
+                credentials=credentials
+            )
+        )
+        self.channel = self.connection.channel()
+        self.channel.queue_declare(queue='paper_processing')
+        self.start_consumer()
+
+    def start_consumer(self):
+        def consumer_thread():
+            def callback(ch, method, properties, body):
+                try:
+                    papers_data = json.loads(body)
+                    papers = [Paper.from_dict(p) for p in papers_data]
+
+                    print(f"📦 받은 메시지 - 총 {len(papers)}개 논문")
+                    for paper in papers:
+                        print(f"- 논문 ID: {paper.paper_id}")
+                        print(f"  제목: {paper.title}")
+                        print(f"  URL: {paper.thesis_url}")
+                        print(f"  내용 길이: {len(paper.text_content)}자")
+                        print("--------------------------------------------------")
+
+                except Exception as e:
+                    print(f"[ERROR] 메시지 처리 중 예외 발생: {e}")
+                finally:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            self.channel.basic_qos(prefetch_count=1)
+            self.channel.basic_consume(
+                queue='paper_processing',
+                on_message_callback=callback
+            )
+            print('[RabbitMQ] 논문 메시지 소비 시작...')
+            self.channel.start_consuming()
+
+        self.consumer_thread = threading.Thread(target=consumer_thread, daemon=True)
+        self.consumer_thread.start()
