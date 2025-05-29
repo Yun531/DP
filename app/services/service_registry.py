@@ -6,7 +6,9 @@ _openalex_service = None
 
 def get_llm_service():
     global _llm_service
+    print("[DEBUG] get_llm_service() 호출됨")
     if _llm_service is None:
+        print("[DEBUG] LLMService 새 인스턴스 생성")
         _llm_service = LLMService()
     return _llm_service
 

@@ -1,4 +1,9 @@
+import threading
+
 import google.generativeai as genai
+
+from app.dtos.paperItem_dto import PaperItem
+
 genai.configure(api_key="AIzaSyAY3DtZzT-9yIJtoIwMP3_iFhGmNN6TlY0")
 from typing import List
 from app.dtos.crawled_paper_dto import CrawledPaper
@@ -113,7 +118,7 @@ class LLMService:
             )
         )
         self.channel = self.connection.channel()
-        self.channel.queue_declare(queue='paper_processing')
+        self.channel.queue_declare(queue='paper_processing', durable=True)
         self.start_consumer()
 
     def start_consumer(self):
@@ -121,15 +126,11 @@ class LLMService:
             def callback(ch, method, properties, body):
                 try:
                     papers_data = json.loads(body)
-                    papers = [Paper.from_dict(p) for p in papers_data]
+                    papers = [PaperItem.model_validate(p) for p in papers_data]
 
-                    print(f"📦 받은 메시지 - 총 {len(papers)}개 논문")
+                    print(f"[RabbitMQ Consumer] 받은 메시지 - 총 {len(papers)}개 논문")
                     for paper in papers:
-                        print(f"- 논문 ID: {paper.paper_id}")
-                        print(f"  제목: {paper.title}")
-                        print(f"  URL: {paper.thesis_url}")
-                        print(f"  내용 길이: {len(paper.text_content)}자")
-                        print("--------------------------------------------------")
+                        print(f"--[RabbitMQ Consumer] 논문 ID: {paper.paper_id}, 제목: {paper.title}, URL: {paper.pdf_url}")
 
                 except Exception as e:
                     print(f"[ERROR] 메시지 처리 중 예외 발생: {e}")
@@ -141,7 +142,7 @@ class LLMService:
                 queue='paper_processing',
                 on_message_callback=callback
             )
-            print('[RabbitMQ] 논문 메시지 소비 시작...')
+            print('--[RabbitMQ Consumer] 논문 메시지 소비 시작...')
             self.channel.start_consuming()
 
         self.consumer_thread = threading.Thread(target=consumer_thread, daemon=True)

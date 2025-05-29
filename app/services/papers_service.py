@@ -83,6 +83,7 @@ def handle_inference(req: InferenceRequest) -> FinalResponse:
     try:
         openalex = get_openalex_service()
         papers = openalex.retrieve_and_publish_papers(keyword_result)
+        print(f"[LOG] RabbitMQ 정상 작동")
     except Exception as e:
         logger.error("RabbitMQ 발행 실패", exc_info=True)
         papers = openalex_service.retrieve_papers(keyword_result)

@@ -179,22 +179,33 @@ class OpenAlexService:
             )
         )
         self.channel = self.connection.channel()
-        self.channel.queue_declare(queue='paper_processing')
+        self.channel.queue_declare(queue='paper_processing', durable=True)
 
     def retrieve_and_publish_papers(self, keyword_result: KeywordSummaryResult) -> List[PaperItem]:
-        # 논문 검색 유틸 함수 호출
         papers = retrieve_papers(keyword_result)
+        papers_data = [paper.model_dump() for paper in papers]
 
-        # 메시지 변환 (직렬화)
-        papers_data = [paper.to_dict() for paper in papers]
+        # 발행용 임시 연결
+        credentials = pika.PlainCredentials('guest', 'guest')
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host='localhost',
+                credentials=credentials
+            )
+        )
+        channel = connection.channel()
+        channel.queue_declare(queue='paper_processing', durable=True)
 
-        # 큐에 메시지 발행
-        self.channel.basic_publish(
+        # 메시지 발행
+        channel.basic_publish(
             exchange='',
             routing_key='paper_processing',
             body=json.dumps(papers_data),
-            properties=pika.BasicProperties(delivery_mode=2)  # 내구성 옵션
+            properties=pika.BasicProperties(delivery_mode=2)
         )
+
+        # 연결 닫기
+        connection.close()
 
         return papers
 
