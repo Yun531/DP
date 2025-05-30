@@ -91,7 +91,6 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
                 summary = "요약 불가: LLM 예외 발생"
         
         results.append(SummarizedPaper(
-            paper_id=paper.paper_id,
             title=paper.title,
             thesis_url=paper.thesis_url,
             text_content=paper.text_content,

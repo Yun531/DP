@@ -16,6 +16,7 @@ class PaperItem(BaseModel):
 
 
 class InferenceRequest(BaseModel):
+    meeting_id: Optional[int] = None # 회의록 아이디
     content: str
 
 
