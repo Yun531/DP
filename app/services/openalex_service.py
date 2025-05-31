@@ -175,6 +175,7 @@ class OpenAlexService:
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host='localhost',
+
                 credentials=credentials
             )
         )
@@ -190,6 +191,7 @@ class OpenAlexService:
         connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host='localhost',
+                port=5672,
                 credentials=credentials
             )
         )

@@ -114,6 +114,7 @@ class LLMService:
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host='localhost',  # 도커 사용 시: rabbitmq
+                port=5672,
                 credentials=credentials
             )
         )
