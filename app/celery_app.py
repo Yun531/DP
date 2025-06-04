@@ -18,6 +18,7 @@ celery_app = Celery(
         'app.workers.invertedindex_worker',
         'app.workers.openalex_worker',
         'app.workers.openalex_reduce_worker',
+        'app.workers.relevance_worker',
     ]
 )
 
@@ -41,4 +42,5 @@ celery_app.conf.task_routes = {
     'workers.openalex_worker.*': {'queue': 'openalex'},
     'workers.openalex_reduce_worker.*': {'queue': 'reduce_openalex'},
     'workers.invertedindex_worker.*': {'queue': 'invertedindex'},
+    'workers.relevance_worker.*': {'queue': 'relevance'},
 }
