@@ -1,5 +1,13 @@
 from celery import Celery
+import logging
 
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s: %(levelname)s/%(processName)s] %(message)s',
+)
+
+# Celery 앱 설정
 celery_app = Celery(
     'dp_project',
     broker='redis://localhost:6379/0',
@@ -12,6 +20,21 @@ celery_app = Celery(
         'app.workers.openalex_reduce_worker',
     ]
 )
+
+# Celery 설정
+celery_app.conf.update(
+    broker_url='redis://localhost:6379/0',
+    result_backend='redis://localhost:6379/1',
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='Asia/Seoul',
+    enable_utc=True,
+    worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(message)s',
+    worker_task_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(message)s',
+    worker_log_level='INFO'
+)
+
 celery_app.conf.task_routes = {
     'workers.pdf_worker.*': {'queue': 'pdf'},
     'workers.llm_worker.*': {'queue': 'llm'},
