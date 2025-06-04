@@ -1,12 +1,18 @@
 import uuid
 import itertools
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+import os
+
+# 환경변수 로드
+load_dotenv()
+
 from app.services.llm_service import extract_keywords
 from app.celery_app import celery_app
 
 app = Flask(__name__)
 
-@app.route('/api/meeting', methods=['POST'])
+@app.route('/api/papers/inference', methods=['POST'])
 def handle_meeting():
     data = request.json
     meeting_text = data['content']
