@@ -22,6 +22,8 @@ while IFS='=' read -r name pid; do
     fi
 done < "$PID_FILE"
 
+pkill -9 -f 'celery'
+
 # 로그 파일 정리
 echo "Cleaning up log files..."
 rm -f "logs/pdf_worker_${TIMESTAMP}.log"
@@ -29,6 +31,7 @@ rm -f "logs/llm_worker_${TIMESTAMP}.log"
 rm -f "logs/openalex_worker_${TIMESTAMP}.log"
 rm -f "logs/reduce_openalex_worker_${TIMESTAMP}.log"
 rm -f "logs/invertedindex_worker_${TIMESTAMP}.log"
+rm -f "logs/relevance_worker_${TIMESTAMP}.log"
 rm -f "logs/flower_${TIMESTAMP}.log"
 rm -f "$PID_FILE"
 

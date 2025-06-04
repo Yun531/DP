@@ -39,6 +39,10 @@ echo "Starting InvertedIndex Worker..."
 celery -A app.celery_app worker -Q invertedindex -n invertedindex_worker@%h -c 6 -l info > "logs/invertedindex_worker_${TIMESTAMP}.log" 2>&1 &
 echo $! >> "logs/worker_pids_${TIMESTAMP}.txt"
 
+echo "Starting Relevance Worker..."
+celery -A app.celery_app worker -Q relevance -n relevance_worker@%h -c 4 -l info > "logs/relevance_worker_${TIMESTAMP}.log" 2>&1 &
+echo $! >> "logs/worker_pids_${TIMESTAMP}.txt"
+
 echo "Starting Flower..."
 celery -A app.celery_app flower --port=5555 > "logs/flower_${TIMESTAMP}.log" 2>&1 &
 echo "flower=$!" >> "logs/worker_pids_${TIMESTAMP}.txt"
