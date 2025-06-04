@@ -154,3 +154,17 @@ def summarize_papers(papers: List[CrawledPaper]) -> List[SummarizedPaper]:
             summary=summary
         ))
     return results
+
+def translate_to_english(text: str) -> str:
+    """
+    한글 회의록을 영어로 번역
+    """
+    prompt = f"""
+    다음 한글 텍스트를 자연스러운 영어로 번역해 주세요. 불필요한 설명 없이 번역문만 출력하세요.
+    
+    [한글 텍스트]
+    ---
+    {text}
+    ---
+    """
+    return call_gemini_with_retry(prompt)
