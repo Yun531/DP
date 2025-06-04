@@ -13,6 +13,17 @@ import redis
 import threading
 import queue
 import matplotlib
+import os
+
+# 결과 저장 디렉토리 설정
+BENCHMARK_DIR = os.path.join(os.path.dirname(__file__), 'benchmark')
+RESULTS_DIR = os.path.join(BENCHMARK_DIR, 'results')
+PLOTS_DIR = os.path.join(BENCHMARK_DIR, 'plots')
+
+# 디렉토리가 없으면 생성
+os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(PLOTS_DIR, exist_ok=True)
+
 matplotlib.rc('font', family='AppleGothic')  # macOS의 경우
 plt.rcParams['axes.unicode_minus'] = False   # 마이너스 깨짐 방지
 
@@ -187,7 +198,13 @@ def run_benchmark(meeting_text, meeting_id=None, num_runs=5):
     try:
         for i in range(num_runs):
             print(f"\n실행 {i+1}/{num_runs}")
-
+            
+            # 단일 서버 테스트
+            print("단일 서버 테스트 중...")
+            single_result = test_single_server(meeting_text, meeting_id)
+            results['single'].append(single_result)
+            print(f"완료 시간: {single_result['duration']:.2f}초")
+            
             # 분산 서버 테스트
             print("분산 서버 테스트 중...")
             dist_result = test_distributed_server(meeting_text, meeting_id)
@@ -201,13 +218,6 @@ def run_benchmark(meeting_text, meeting_id=None, num_runs=5):
             })
             print(f"완료 시간: {dist_result[0]:.2f}초")
             
-            # 단일 서버 테스트
-            print("단일 서버 테스트 중...")
-            single_result = test_single_server(meeting_text, meeting_id)
-            results['single'].append(single_result)
-            print(f"완료 시간: {single_result['duration']:.2f}초")
-            
-            
             # 결과를 파일로 저장
             save_benchmark_result(meeting_id, i+1, single_result, dist_result)
     
@@ -220,7 +230,7 @@ def run_benchmark(meeting_text, meeting_id=None, num_runs=5):
 def save_benchmark_result(meeting_id, run_number, single_result, dist_result):
     """벤치마크 결과를 파일로 저장"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"benchmark_results_{meeting_id}_{timestamp}.txt"
+    filename = os.path.join(RESULTS_DIR, f"benchmark_results_{meeting_id}_{timestamp}.txt")
     
     with open(filename, 'a', encoding='utf-8') as f:
         f.write(f"\n=== 벤치마크 결과 (회의 ID: {meeting_id}, 실행 {run_number}) ===\n")
@@ -306,8 +316,12 @@ def analyze_results(results):
     plt.title('평균 관련도 비교')
     
     plt.tight_layout()
-    plt.savefig('benchmark_results.png')
-    print("\n결과가 'benchmark_results.png'에 저장되었습니다.")
+    
+    # 결과 저장
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    plot_path = os.path.join(PLOTS_DIR, f'benchmark_results_{timestamp}.png')
+    plt.savefig(plot_path)
+    print(f"\n결과가 '{plot_path}'에 저장되었습니다.")
 
 if __name__ == "__main__":
     # 테스트용 회의록 텍스트
@@ -333,7 +347,7 @@ if __name__ == "__main__":
     """
     
     # 벤치마크 실행
-    results = run_benchmark(meeting_text, meeting_id=1, num_runs=2)
+    results = run_benchmark(meeting_text, meeting_id=1, num_runs=8)
     
     # 결과 분석
     analyze_results(results) 
