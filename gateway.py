@@ -1,12 +1,18 @@
 import uuid
 import itertools
 from flask import Flask, request, jsonify
-from app.services.llm_service import extract_keywords
+from dotenv import load_dotenv
+import os
+
+# 환경변수 로드
+load_dotenv()
+
+from app.services.llm_service import extract_keywords, translate_to_english
 from app.celery_app import celery_app
 
 app = Flask(__name__)
 
-@app.route('/api/meeting', methods=['POST'])
+@app.route('/api/papers/inference', methods=['POST'])
 def handle_meeting():
     data = request.json
     meeting_text = data['content']
@@ -14,6 +20,9 @@ def handle_meeting():
 
     ks = extract_keywords(meeting_text)
     keywords = ks.keywords
+
+    # 회의록을 영어로 번역
+    meeting_text_en = translate_to_english(meeting_text)
 
     combos = []
     for r in range(2, len(keywords)+1):
@@ -29,7 +38,7 @@ def handle_meeting():
     # Reduce 태스크 비동기 발행
     celery_app.send_task(
         'workers.openalex_reduce_worker.reduce',
-        args=[task_id, len(combos), meeting_id]
+        args=[task_id, len(combos), meeting_id, meeting_text_en]
     )
 
     response = {

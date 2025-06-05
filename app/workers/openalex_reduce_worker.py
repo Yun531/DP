@@ -7,7 +7,7 @@ redis_client = redis.Redis(host='localhost', port=6379, db=2)
 logger = logging.getLogger(__name__)
 
 @celery_app.task(name='workers.openalex_reduce_worker.reduce')
-def reduce_openalex_results(task_id, total_map_tasks, meeting_id):
+def reduce_openalex_results(task_id, total_map_tasks, meeting_id, meeting_text):
     logger.info(f"[REDUCE] 태스크 시작: task_id={task_id}, total_map_tasks={total_map_tasks}, meeting_id={meeting_id}")
     # 모든 map 태스크가 끝났는지 확인
     while int(redis_client.get(f"openalex:{task_id}:done") or 0) < total_map_tasks:
@@ -28,17 +28,17 @@ def reduce_openalex_results(task_id, total_map_tasks, meeting_id):
         freq[title] = freq.get(title, 0) + 1
         paper_info[title] = paper
 
-    # 등장 빈도 기준 상위 10개 선정
-    top_titles = sorted(freq, key=lambda x: -freq[x])[:10]
+    # 등장 빈도 기준 상위 20개 논문 후보 추출
+    top_titles = sorted(freq, key=lambda x: -freq[x])[:20]
     top_papers = [paper_info[title] for title in top_titles]
-    logger.info(f"[REDUCE] 상위 10개 논문 선정: {[p['title'] for p in top_papers]}")
+    logger.info(f"[REDUCE] 상위 20개 논문 선정: {[p['title'] for p in top_papers]}")
 
     # PDF 워커에 태스크 발행
     for paper in top_papers:
         logger.info(f"[REDUCE] PDF 워커에 태스크 발행: {paper['title']}")
         celery_app.send_task(
             'workers.pdf_worker.download_and_extract',
-            args=[paper['title'], paper['pdf'], meeting_id]
+            args=[paper['title'], paper['pdf'], meeting_id, meeting_text]
         )
     # 필요시 결과를 Spring 서버 등에도 전달 가능
     logger.info(f"[REDUCE] 최종 top_papers 반환")

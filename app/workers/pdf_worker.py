@@ -3,9 +3,13 @@ from app.services.crawling_service import CrawlingService
 from app.dtos.paperItem_dto import PaperItem
 from app.celery_app import celery_app
 import os
+import redis
+import json
+
+redis_client = redis.Redis(host='localhost', port=6379, db=3)
 
 @celery_app.task(name='workers.pdf_worker.download_and_extract')
-def download_and_extract(title, pdf_url, meeting_id):
+def download_and_extract(title, pdf_url, meeting_id, meeting_text):
     crawler = CrawlingService()
 
     # todo PaperItem에서 paper_id 제거
@@ -20,19 +24,22 @@ def download_and_extract(title, pdf_url, meeting_id):
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(crawled.text_content)
 
-    # LLM Worker에 이벤트 발행 (title, meeting_id, txt_path)
-    celery_app.send_task('workers.llm_worker.summarize_paper', args=[title, meeting_id, txt_path, pdf_url])
+    # Redis에 논문 정보 push
+    paper_info = {
+        'title': title,
+        'txt_path': txt_path,
+        'text_content': crawled.text_content,
+        'meeting_id': meeting_id,
+        'pdf_url': pdf_url
+    }
+    redis_client.rpush(f"relevance:{meeting_id}:papers", json.dumps(paper_info))
 
-     # 역색인 워커에는 텍스트 자체 전달
-    chunks = chunk_text(text, 2000)
-    for chunk in chunks:
-        celery_app.send_task(
-            'workers.invertedindex_worker.build_inverted_index',
-            args=[chunk, meeting_id]
-        )
+    # relevance_worker에 태스크 발행 (논문 1개 도착 알림)
+    celery_app.send_task(
+        'workers.relevance_worker.check_and_select',
+        args=[meeting_id, meeting_text]
+    )
 
-def chunk_text(text, chunk_size=2000):
-    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 

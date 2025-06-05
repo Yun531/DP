@@ -163,20 +163,36 @@ class CrawlingService:
                     if latest_pdf_path and os.path.getsize(latest_pdf_path) > 0:
                         logger.warning(f"논문 '{paper.title}' PDF 셀레니움 다운로드 성공: {latest_pdf_path}")
                         text_content = self._parse_pdf(latest_pdf_path)
-                        os.remove(latest_pdf_path)
+                        # PDF 파일 삭제
+                        try:
+                            os.remove(latest_pdf_path)
+                            logger.info(f"PDF 파일 삭제 완료: {latest_pdf_path}")
+                        except Exception as e:
+                            logger.error(f"PDF 파일 삭제 실패: {str(e)}")
                     else:
                         logger.error(f"논문 '{paper.title}' PDF 셀레니움 다운로드 실패: 파일 없음 또는 크기 0")
                 except Exception as se:
                     logger.error(f"논문 '{paper.title}' 셀레니움 다운로드 중 예외: {str(se)}")
                 finally:
                     driver.quit()
+                    # 셀레니움 다운로드 디렉토리의 모든 PDF 파일 삭제
+                    for pdf_file in glob.glob(os.path.join(self.download_dir, '*.pdf')):
+                        try:
+                            os.remove(pdf_file)
+                            logger.info(f"남은 PDF 파일 삭제 완료: {pdf_file}")
+                        except Exception as e:
+                            logger.error(f"PDF 파일 삭제 실패: {str(e)}")
             else:
                 logger.error(f"논문 '{paper.title}' PDF 다운로드 실패: {str(e)}")
         except Exception as e:
             logger.error(f"논문 '{paper.title}' PDF 다운로드 중 예외: {str(e)}")
         # 파일 정리
         if os.path.exists(pdf_path):
-            os.remove(pdf_path)
+            try:
+                os.remove(pdf_path)
+                logger.info(f"임시 PDF 파일 삭제 완료: {pdf_path}")
+            except Exception as e:
+                logger.error(f"임시 PDF 파일 삭제 실패: {str(e)}")
         # CrawledPaper 생성
         crawled_paper = CrawledPaper(
             title=paper.title,
