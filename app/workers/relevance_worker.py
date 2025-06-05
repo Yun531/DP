@@ -24,6 +24,10 @@ def process_paper_batch(papers_batch, meeting_text):
     similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:])[0]
     return similarities
 
+def chunk_text(text, chunk_size=2000):
+    """텍스트를 청크 단위로 분할"""
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+
 @celery_app.task(name='workers.relevance_worker.check_and_select')
 def check_and_select(meeting_id, meeting_text):
     # Redis에서 논문 리스트 가져오기
@@ -71,12 +75,21 @@ def check_and_select(meeting_id, meeting_text):
         else:
             remaining_papers.append(paper)
     
-    # 선택된 논문을 llm_worker에 전송
+    # 선택된 논문을 llm_worker에 전송하고 역색인 처리
     for paper in selected_papers:
+        # llm_worker에 전송
         celery_app.send_task(
             'workers.llm_worker.summarize_paper',
             args=[paper['title'], paper['meeting_id'], paper['txt_path'], paper.get('pdf_url', '')]
         )
+        
+        # 역색인 처리
+        chunks = chunk_text(paper['text_content'], 2000)
+        for chunk in chunks:
+            celery_app.send_task(
+                'workers.invertedindex_worker.build_inverted_index',
+                args=[chunk, meeting_id]
+            )
     
     # 처리된 논문 제거
     for paper_json in paper_jsons:

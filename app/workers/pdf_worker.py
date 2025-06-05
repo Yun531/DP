@@ -40,16 +40,6 @@ def download_and_extract(title, pdf_url, meeting_id, meeting_text):
         args=[meeting_id, meeting_text]
     )
 
-    # 역색인 워커에는 텍스트 자체 전달
-    chunks = chunk_text(text, 2000)
-    for chunk in chunks:
-        celery_app.send_task(
-            'workers.invertedindex_worker.build_inverted_index',
-            args=[chunk, meeting_id]
-        )
-
-def chunk_text(text, chunk_size=2000):
-    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 
