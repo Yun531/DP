@@ -6,8 +6,8 @@ import logging
 redis_client = redis.Redis(host='localhost', port=6379, db=2)
 logger = logging.getLogger(__name__)
 
-@celery_app.task(name='workers.openalex_reduce_worker.reduce')
-def reduce_openalex_results(task_id, total_map_tasks, meeting_id, meeting_text):
+@celery_app.task(name='workers.openalex_reduce_worker.reduce', bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 1, 'countdown': 5}, time_limit=300, soft_time_limit=290)
+def reduce_openalex_results(self, task_id, total_map_tasks, meeting_id, meeting_text):
     logger.info(f"[REDUCE] 태스크 시작: task_id={task_id}, total_map_tasks={total_map_tasks}, meeting_id={meeting_id}")
     # 모든 map 태스크가 끝났는지 확인
     while int(redis_client.get(f"openalex:{task_id}:done") or 0) < total_map_tasks:

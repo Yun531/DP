@@ -28,8 +28,8 @@ def chunk_text(text, chunk_size=2000):
     """텍스트를 청크 단위로 분할"""
     return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
-@celery_app.task(name='workers.relevance_worker.check_and_select')
-def check_and_select(meeting_id, meeting_text):
+@celery_app.task(name='workers.relevance_worker.check_and_select', bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 1, 'countdown': 5}, time_limit=300, soft_time_limit=290)
+def check_and_select(self, meeting_id, meeting_text):
     # Redis에서 논문 리스트 가져오기
     paper_jsons = redis_client.lrange(f"relevance:{meeting_id}:papers", 0, -1)
     if len(paper_jsons) < 5:  # 5개 미만이면 대기

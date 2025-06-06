@@ -8,8 +8,8 @@ import json
 
 redis_client = redis.Redis(host='localhost', port=6379, db=3)
 
-@celery_app.task(name='workers.pdf_worker.download_and_extract')
-def download_and_extract(title, pdf_url, meeting_id, meeting_text):
+@celery_app.task(name='workers.pdf_worker.download_and_extract', bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 1, 'countdown': 5}, time_limit=300, soft_time_limit=290)
+def download_and_extract(self, title, pdf_url, meeting_id, meeting_text):
     crawler = CrawlingService()
 
     # todo PaperItem에서 paper_id 제거

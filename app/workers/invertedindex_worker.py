@@ -4,8 +4,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@celery_app.task(name='workers.invertedindex_worker.build_inverted_index')
-def build_and_save_inverted_index(text, meeting_id):
+@celery_app.task(name='workers.invertedindex_worker.build_inverted_index', bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 1, 'countdown': 5}, time_limit=300, soft_time_limit=290)
+def build_and_save_inverted_index(self, text, meeting_id):
     logger.info(f"[INVERTED INDEX] 태스크 시작: meeting_id={meeting_id}")
     # 1. 띄어쓰기 단위로 단어 분리
     words = text.split()

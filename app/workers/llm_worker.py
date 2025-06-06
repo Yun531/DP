@@ -13,8 +13,8 @@ logger = logging.getLogger('celery.task')
 # Redis 연결
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
-@celery_app.task(name='workers.llm_worker.summarize_paper')
-def summarize_paper(title, meeting_id, txt_path, pdf_url):
+@celery_app.task(name='workers.llm_worker.summarize_paper', bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 1, 'countdown': 5}, time_limit=300, soft_time_limit=290)
+def summarize_paper(self, title, meeting_id, txt_path, pdf_url):
     logger.info(f"[LLM Worker] 논문 요약 시작: {title}")
     
     try:
