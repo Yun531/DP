@@ -18,8 +18,8 @@ def build_and_save_inverted_index(self, text, meeting_id):
     # 4. MySQL에 저장
     conn = pymysql.connect(
         host='localhost',
-        user='janghyunjun',
-        password='Wonjoon1206!',
+        user='',
+        password='!',
         db='ds',
         charset='utf8mb4'
     )
