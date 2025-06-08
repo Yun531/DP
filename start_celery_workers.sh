@@ -39,13 +39,16 @@ echo "Starting InvertedIndex Worker..."
 celery -A app.celery_app worker -Q invertedindex -n invertedindex_worker@%h -c 6 -l info > "logs/invertedindex_worker_${TIMESTAMP}.log" 2>&1 &
 echo $! >> "logs/worker_pids_${TIMESTAMP}.txt"
 
+# Relevance Worker (4개 프로세스)
 echo "Starting Relevance Worker..."
 celery -A app.celery_app worker -Q relevance -n relevance_worker@%h -c 4 -l info > "logs/relevance_worker_${TIMESTAMP}.log" 2>&1 &
 echo $! >> "logs/worker_pids_${TIMESTAMP}.txt"
 
+# Flower (1개 프로세스) - 워커 모니터링
 echo "Starting Flower..."
 celery -A app.celery_app flower --port=5555 > "logs/flower_${TIMESTAMP}.log" 2>&1 &
 echo "flower=$!" >> "logs/worker_pids_${TIMESTAMP}.txt"
 
+# 모든 워커 시작 메시지
 echo "All workers started. Logs are in the logs directory."
 echo "To stop workers, use: ./stop_celery_workers.sh ${TIMESTAMP}"
